@@ -1,0 +1,265 @@
+import React, { useState } from 'react';
+import { supabase } from '../lib/supabase';
+
+function Auth({ onAuthSuccess }) {
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [showTermsModal, setShowTermsModal] = useState(false);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) throw error;
+      
+      onAuthSuccess(data.user);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+ const handleSignUp = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  setError('');
+  
+  if (password !== confirmPassword) {
+    setError('Las contraseñas no coinciden');
+    setLoading(false);
+    return;
+  }
+  
+  if (!acceptedTerms) {
+    setError('Debes aceptar los términos y condiciones');
+    setLoading(false);
+    return;
+  }
+  
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          accepted_terms: true,
+          accepted_terms_at: new Date().toISOString(),
+        }
+      }
+    });
+    
+    if (error) throw error;
+    
+    // Crear perfil automáticamente si el usuario se creó
+    if (data.user) {
+      await ensureProfile(data.user);
+    }
+    
+    setSuccessMessage('¡Cuenta creada! Revisa tu correo para confirmar tu cuenta.');
+    setTimeout(() => {
+      setIsLogin(true);
+      setSuccessMessage('');
+    }, 3000);
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        }
+      });
+      
+      if (error) throw error;
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
+  const TermsModal = () => (
+    <div className="modal" onClick={() => setShowTermsModal(false)}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <h3>📋 Términos y Condiciones</h3>
+        <div style={{ maxHeight: '400px', overflowY: 'auto', marginBottom: '20px', fontSize: '0.8rem', lineHeight: '1.6' }}>
+          <p><strong>1. Aceptación de los Términos</strong></p>
+          <p>Al crear una cuenta en MOAR, aceptas estos términos y condiciones en su totalidad.</p>
+          
+          <p><strong>2. Privacidad y Datos</strong></p>
+          <p>Tus datos financieros se almacenan de forma segura en Supabase. No compartimos tu información con terceros sin tu consentimiento.</p>
+          
+          <p><strong>3. Responsabilidad del Usuario</strong></p>
+          <p>Eres responsable de mantener la confidencialidad de tu cuenta y contraseña. MOAR no se hace responsable por pérdidas derivadas del acceso no autorizado a tu cuenta.</p>
+          
+          <p><strong>4. Uso Aceptable</strong></p>
+          <p>La aplicación está diseñada para el seguimiento personal de finanzas. No está permitido el uso para actividades ilegales.</p>
+          
+          <p><strong>5. Limitación de Responsabilidad</strong></p>
+          <p>MOAR se proporciona "tal cual". No garantizamos que la aplicación esté libre de errores o interrupciones.</p>
+          
+          <p><strong>6. Modificaciones</strong></p>
+          <p>Nos reservamos el derecho de modificar estos términos en cualquier momento. Los cambios serán notificados por correo electrónico.</p>
+          
+          <p><strong>7. Cancelación de Cuenta</strong></p>
+          <p>Puedes eliminar tu cuenta en cualquier momento desde la configuración. Tus datos serán eliminados permanentemente.</p>
+          
+          <p><strong>8. Ley Aplicable</strong></p>
+          <p>Estos términos se rigen por las leyes de Colombia.</p>
+        </div>
+        <div className="modal-buttons">
+          <button type="button" onClick={() => setShowTermsModal(false)}>Cerrar</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      {showTermsModal && <TermsModal />}
+      
+      <div className="auth-container">
+        <div className="auth-card">
+          <div className="auth-header">
+            <h1>💰 MOAR</h1>
+            <p>{isLogin ? 'Bienvenido de vuelta' : 'Comienza a gestionar tus finanzas'}</p>
+          </div>
+          
+          <div className="auth-tabs">
+            <button 
+              className={`auth-tab ${isLogin ? 'active' : ''}`}
+              onClick={() => { setIsLogin(true); setError(''); setSuccessMessage(''); }}
+            >
+              Iniciar Sesión
+            </button>
+            <button 
+              className={`auth-tab ${!isLogin ? 'active' : ''}`}
+              onClick={() => { setIsLogin(false); setError(''); setSuccessMessage(''); }}
+            >
+              Crear Cuenta
+            </button>
+          </div>
+          
+          {error && <div className="auth-error">{error}</div>}
+          {successMessage && <div className="auth-success">{successMessage}</div>}
+          
+          <form onSubmit={isLogin ? handleLogin : handleSignUp}>
+            <div className="form-group">
+              <label>Correo Electrónico</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="tu@email.com"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>Contraseña</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+              />
+            </div>
+            
+            {!isLogin && (
+              <>
+                <div className="form-group">
+                  <label>Confirmar Contraseña</label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                  />
+                </div>
+                
+                <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+                  <input
+                    type="checkbox"
+                    id="terms"
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    style={{ width: 'auto', margin: 0 }}
+                  />
+                  <label htmlFor="terms" style={{ margin: 0, fontSize: '0.75rem' }}>
+                    Acepto los{' '}
+                    <button 
+                      type="button" 
+                      onClick={() => setShowTermsModal(true)}
+                      style={{ background: 'none', border: 'none', color: 'var(--info)', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+                    >
+                      términos y condiciones
+                    </button>
+                  </label>
+                </div>
+              </>
+            )}
+            
+            <button type="submit" className="auth-btn primary" disabled={loading}>
+              {loading ? 'Cargando...' : (isLogin ? 'Iniciar Sesión' : 'Crear Cuenta')}
+            </button>
+          </form>
+          
+          <div className="auth-divider">
+            <span>o</span>
+          </div>
+          
+          <button onClick={handleGoogleLogin} className="auth-btn google" disabled={loading}>
+            <span className="google-icon">G</span>
+            Continuar con Google
+          </button>
+          
+          {isLogin && (
+            <button 
+              className="auth-link"
+              onClick={() => {
+                if (email) {
+                  // Implementar recuperación de contraseña
+                  setError('Función de recuperación disponible próximamente');
+                } else {
+                  setError('Ingresa tu correo para recuperar contraseña');
+                }
+              }}
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          )}
+          
+          <div className="auth-footer">
+            <p>Protegido por Supabase 🔒</p>
+            <p><a href="#" onClick={() => setShowTermsModal(true)}>Términos y Condiciones</a></p>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+export default Auth;
