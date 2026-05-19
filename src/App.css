@@ -2785,3 +2785,71 @@ h1 {
   color: var(--text-secondary);
   margin: 0;
 }
+
+/* ========== BOTONES DE AVANCE ========== */
+.advance-card-btn {
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 30px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.advance-card-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.advance-mini-btn {
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  color: white;
+  border: none;
+  padding: 2px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.6rem;
+  transition: all 0.2s ease;
+}
+
+.advance-mini-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.card-mini-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+/* ========== MODAL DE AVANCE ========== */
+.advance-card-info {
+  background: var(--hover-bg);
+  padding: 12px;
+  border-radius: 14px;
+  margin-bottom: 16px;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.advance-card-info strong {
+  color: var(--text-primary);
+}
+
+.advance-card-info .available {
+  color: #f39c12;
+  font-size: 1rem;
+}
+
+.advance-warning {
+  background: var(--warning-bg);
+  color: var(--warning);
+  padding: 10px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  margin: 16px 0;
+  text-align: center;
+}
