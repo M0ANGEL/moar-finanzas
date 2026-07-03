@@ -8,7 +8,7 @@ export const fetchLists = async (userId) => {
     .eq('user_id', userId)
     .order('created_at', { ascending: true });
   if (error) throw error;
-  return data;
+  return data || [];
 };
 
 export const createList = async (list) => {
@@ -24,23 +24,37 @@ export const createList = async (list) => {
 export const updateListBalance = async (listId, newBalance) => {
   const { error } = await supabase
     .from('lists')
-    .update({ balance: newBalance })
+    .update({ balance: newBalance, updated_at: new Date().toISOString() })
     .eq('id', listId);
   if (error) throw error;
 };
 
 export const deleteList = async (listId) => {
-  const { error } = await supabase.from('lists').delete().eq('id', listId);
+  const { error: txError } = await supabase
+    .from('transactions')
+    .delete()
+    .eq('list_id', listId);
+  if (txError) throw txError;
+  
+  const { error } = await supabase
+    .from('lists')
+    .delete()
+    .eq('id', listId);
   if (error) throw error;
 };
 
 // ==================== TRANSACTIONS ====================
 export const fetchTransactions = async (userId, listId) => {
-  let query = supabase.from('transactions').select('*').eq('user_id', userId);
+  let query = supabase
+    .from('transactions')
+    .select('*')
+    .eq('user_id', userId);
+  
   if (listId) query = query.eq('list_id', listId);
+  
   const { data, error } = await query.order('date', { ascending: false });
   if (error) throw error;
-  return data;
+  return data || [];
 };
 
 export const createTransaction = async (transaction) => {
@@ -62,7 +76,10 @@ export const updateTransaction = async (transactionId, updates) => {
 };
 
 export const deleteTransaction = async (transactionId) => {
-  const { error } = await supabase.from('transactions').delete().eq('id', transactionId);
+  const { error } = await supabase
+    .from('transactions')
+    .delete()
+    .eq('id', transactionId);
   if (error) throw error;
 };
 
@@ -74,7 +91,7 @@ export const fetchPockets = async (userId, listId) => {
     .eq('user_id', userId)
     .eq('list_id', listId);
   if (error) throw error;
-  return data;
+  return data || [];
 };
 
 export const createPocket = async (pocket) => {
@@ -96,7 +113,10 @@ export const updatePocket = async (pocketId, updates) => {
 };
 
 export const deletePocket = async (pocketId) => {
-  const { error } = await supabase.from('pockets').delete().eq('id', pocketId);
+  const { error } = await supabase
+    .from('pockets')
+    .delete()
+    .eq('id', pocketId);
   if (error) throw error;
 };
 
@@ -108,7 +128,7 @@ export const fetchCreditCards = async (userId, listId) => {
     .eq('user_id', userId)
     .eq('list_id', listId);
   if (error) throw error;
-  return data;
+  return data || [];
 };
 
 export const createCreditCard = async (card) => {
@@ -140,17 +160,31 @@ export const updateCreditCard = async (cardId, updates) => {
 };
 
 export const deleteCreditCard = async (cardId) => {
-  const { error } = await supabase.from('credit_cards').delete().eq('id', cardId);
+  const { error: txError } = await supabase
+    .from('card_transactions')
+    .delete()
+    .eq('card_id', cardId);
+  if (txError) throw txError;
+  
+  const { error } = await supabase
+    .from('credit_cards')
+    .delete()
+    .eq('id', cardId);
   if (error) throw error;
 };
 
 // ==================== CARD TRANSACTIONS ====================
 export const fetchCardTransactions = async (userId, cardId = null) => {
-  let query = supabase.from('card_transactions').select('*').eq('user_id', userId);
+  let query = supabase
+    .from('card_transactions')
+    .select('*')
+    .eq('user_id', userId);
+  
   if (cardId) query = query.eq('card_id', cardId);
+  
   const { data, error } = await query.order('date', { ascending: false });
   if (error) throw error;
-  return data;
+  return data || [];
 };
 
 export const createCardTransaction = async (cardTransaction) => {
@@ -172,7 +206,10 @@ export const updateCardTransaction = async (transactionId, updates) => {
 };
 
 export const deleteCardTransaction = async (transactionId) => {
-  const { error } = await supabase.from('card_transactions').delete().eq('id', transactionId);
+  const { error } = await supabase
+    .from('card_transactions')
+    .delete()
+    .eq('id', transactionId);
   if (error) throw error;
 };
 
@@ -184,7 +221,7 @@ export const fetchFixedItems = async (userId, listId) => {
     .eq('user_id', userId)
     .eq('list_id', listId);
   if (error) throw error;
-  return data;
+  return data || [];
 };
 
 export const createFixedItem = async (item) => {
@@ -206,7 +243,10 @@ export const updateFixedItem = async (itemId, updates) => {
 };
 
 export const deleteFixedItem = async (itemId) => {
-  const { error } = await supabase.from('fixed_items').delete().eq('id', itemId);
+  const { error } = await supabase
+    .from('fixed_items')
+    .delete()
+    .eq('id', itemId);
   if (error) throw error;
 };
 
@@ -218,7 +258,7 @@ export const fetchReceivables = async (userId, listId) => {
     .eq('user_id', userId)
     .eq('list_id', listId);
   if (error) throw error;
-  return data;
+  return data || [];
 };
 
 export const createReceivable = async (receivable) => {
@@ -240,12 +280,14 @@ export const updateReceivable = async (receivableId, updates) => {
 };
 
 export const deleteReceivable = async (receivableId) => {
-  const { error } = await supabase.from('receivables').delete().eq('id', receivableId);
+  const { error } = await supabase
+    .from('receivables')
+    .delete()
+    .eq('id', receivableId);
   if (error) throw error;
 };
 
 // ==================== CATEGORIES ====================
-// Trae solo las categorías del usuario (no hay globales)
 export const fetchCategories = async (userId) => {
   const { data, error } = await supabase
     .from('categories')
@@ -253,11 +295,10 @@ export const fetchCategories = async (userId) => {
     .eq('user_id', userId)
     .order('created_at', { ascending: true });
   if (error) throw error;
-  return data;
+  return data || [];
 };
 
 export const createCategory = async (category) => {
-  // Solo insertamos los campos que existen en la tabla
   const { data, error } = await supabase
     .from('categories')
     .insert([{
@@ -272,7 +313,18 @@ export const createCategory = async (category) => {
   return data;
 };
 
+export const updateCategory = async (categoryId, updates) => {
+  const { error } = await supabase
+    .from('categories')
+    .update(updates)
+    .eq('id', categoryId);
+  if (error) throw error;
+};
+
 export const deleteCategory = async (categoryId) => {
-  const { error } = await supabase.from('categories').delete().eq('id', categoryId);
+  const { error } = await supabase
+    .from('categories')
+    .delete()
+    .eq('id', categoryId);
   if (error) throw error;
 };
